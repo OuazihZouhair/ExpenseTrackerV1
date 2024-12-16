@@ -4,3 +4,7 @@ GET {{Expense_Tracker_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+GET {{Expense_Tracker_HostAddress}}/api/expense
+
+###

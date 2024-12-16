@@ -1,5 +1,6 @@
 ﻿using Expense_Tracker.Data;
 using Expense_Tracker.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +12,23 @@ namespace Expense_Tracker.Controllers
     public class ExpenseController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ExpenseController(DataContext context)
+        public ExpenseController(DataContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         [HttpGet]
         public async Task<ActionResult<List<Expense>>> GetAllExpenses()
         {
+            // Get the currently logged-in user's Id
+            var userId = _userManager.GetUserId(User);
+
+            // Retrieve expenses for the logged-in user
             var expenses = await _context.Expenses
-                .Include(e => e.User)
+                .Where(e => e.UserId == userId)
                 .ToListAsync();
 
             return Ok(expenses);
@@ -31,7 +38,13 @@ namespace Expense_Tracker.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Expense>> GetExpense(int id)
         {
-            var expense = await _context.Expenses.FindAsync(id);
+            // Get the logged-in user's Id
+            var userId = _userManager.GetUserId(User);
+
+            // Find the expense bu Id and ensure that it belogns the the right user
+
+            var expense = await _context.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
+
             if (expense is null)
                 return NotFound("Expense not found.");
 
@@ -40,57 +53,67 @@ namespace Expense_Tracker.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<List<Expense>>> AddExpense(Expense e, int userId)
+        public async Task<ActionResult<List<Expense>>> AddExpense(Expense e)
         {
+            // Get the logged-in user's Id
+            var userId = _userManager.GetUserId(User);
 
-            var user = await _context.User.FindAsync(userId);
-            // Check if the user exists
-            if (user == null)
-            {
-                return NotFound($"User with ID {userId} does not exist.");
-            }
-
-            // Set the UserId and User for the Expense
+            // Associate the new expense with the logged-in user 
             e.UserId = userId;
-            e.User = user;
 
             _context.Expenses.Add(e);
             await _context.SaveChangesAsync();
 
             //return Ok(await _context.Expenses.ToListAsync());
-            return Ok(await _context.Expenses.Include(exp => exp.User).ToListAsync());
+            return Ok(await _context.Expenses
+                .Where(e => e.UserId == userId)
+                .ToListAsync());
         }
 
 
         [HttpPut]
         public async Task<ActionResult<List<Expense>>> UpdateExpense(Expense upE)
         {
-            var expense = await _context.Expenses.FindAsync(upE.Id);
+            // Get the logged-in user's Id
+            var userId = _userManager.GetUserId(User);
+
+            // Find the existing expense by Id and ensure it belongs to the logged-in user
+            var expense = await _context.Expenses
+                .FirstOrDefaultAsync(e => e.Id == upE.Id && e.UserId == userId);
+
             if (expense is null)
                 return NotFound("Expense not found.");
 
-            expense.category = upE.category;
             expense.amount = upE.amount;
+            expense.description = upE.description;
+            expense.category = upE.category;
             expense.date = upE.date;
-            //expense.userId = upE.userId;
 
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Expenses.ToListAsync());
+            return Ok(await _context.Expenses
+                .Where(e => e.UserId == userId)
+                .ToListAsync());
         }
 
 
         [HttpDelete]
         public async Task<ActionResult<List<Expense>>> DeleteExpense(int id)
         {
-            var expense = await _context.Expenses.FindAsync(id);
+            var userId = _userManager.GetUserId(User);
+
+            var expense = await _context.Expenses
+                .FirstOrDefaultAsync( e => e.Id == id && e.UserId == userId);
+
             if (expense is null)
                 return NotFound("Expense not found.");
 
             _context.Expenses.Remove(expense);
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Expenses.ToListAsync());
+            return Ok(await _context.Expenses
+                .Where(e => e.UserId == userId)
+                .ToListAsync());
         }
     }
 }

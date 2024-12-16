@@ -1,4 +1,7 @@
-﻿namespace Expense_Tracker.Entities
+﻿
+using Microsoft.AspNetCore.Identity;
+
+namespace Expense_Tracker.Entities
 {
     public enum CategoryType
     {
@@ -11,13 +14,14 @@
     public class Expense
     {
         public int Id { get; set; }
+        public string description { get; set; }
         public double amount { get; set; }
         public DateOnly date { get; set; }
 
         // Category as enum
         public CategoryType? category { get; set; }
 
-        public int? UserId { get; set; }
-        public User? User { get; set; }
+        public string? UserId { get; set; }
+        public IdentityUser? User { get; set; }
     }
 }
