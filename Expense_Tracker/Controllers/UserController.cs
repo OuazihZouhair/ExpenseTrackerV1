@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Expense_Tracker.Controllers
 {
-    [Route("api/[controller]")]
+    /*[Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -87,6 +87,6 @@ namespace Expense_Tracker.Controllers
             }
 
             return Ok("User deleted successfully.");
-        }
-    }
+        } 
+    } */
 }
